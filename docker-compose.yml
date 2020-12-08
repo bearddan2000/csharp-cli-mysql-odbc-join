@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  os:
+    build:
+      context: ./os
+
+  maria:
+    image: mariadb:latest
+    volumes:
+      - ./maria/data_dump:/var/lib/mysql
+      - ./maria/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=odbc-join
+      - MYSQL_USER=maria
+      - MYSQL_PASSWORD=pass
+
+  mono:
+    build:
+      context: ./mono
+    depends_on:
+      - maria
+    links:
+      - maria:maria
