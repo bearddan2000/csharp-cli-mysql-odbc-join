@@ -86,12 +86,104 @@ function usage() {
     echo "-h: Display this help and exit."
     echo ""
 }
+function decompress() {
+    scope="decompress"
+    info_base="[$timestamp INFO]: $basefile::$scope"
+
+    echo "$info_base started" >> $logfile
+
+    dir=$1
+
+    filename=$2
+
+    decompressed_folder=$3
+
+    if [[ -d "$dir/$decompressed_folder" ]]; then
+
+          echo "$info_base $filename already decompressed" >> $logfile
+
+          echo "$info_base ended" >> $logfile
+
+          echo "================" >> $logfile
+
+          return
+    fi
+
+    echo "$info_base changing directory to $dir" >> $logfile
+
+    cd ${dir}
+
+    echo "$info_base decompress $dir/$filename " >> $logfile
+
+    sudo tar -xf $filename
+
+    echo "$info_base removing $filename " >> $logfile
+
+    sudo rm -f $filename
+
+    echo "$info_base changing directory back" >> $logfile
+
+    cd ../
+
+    echo "$info_base ended" >> $logfile
+
+    echo "================" >> $logfile
+}
+function compress() {
+    scope="compress"
+    info_base="[$timestamp INFO]: $basefile::$scope"
+
+    echo "$info_base started" >> $logfile
+
+    dir=$1
+
+    filename=$2
+
+    decompressed_folder=$3
+
+    if [[ -f "$dir/$filename" ]]; then
+
+          echo "$info_base $decompressed_folder already compressed" >> $logfile
+
+          echo "$info_base ended" >> $logfile
+
+          echo "================" >> $logfile
+
+          return
+    fi
+
+    echo "$info_base changing directory to $dir" >> $logfile
+
+    cd ${dir}
+
+    echo "$info_base compressing $dir/$decompressed_folder " >> $logfile
+
+    sudo tar -czvf $filename $decompressed_folder
+
+    echo "$info_base removing $decompressed_folder " >> $logfile
+
+    sudo rm -Rf $decompressed_folder
+
+    echo "$info_base changing directory back" >> $logfile
+
+    cd ../
+
+    echo "$info_base ended" >> $logfile
+
+    echo "================" >> $logfile
+}
 function start-up(){
 
     scope="start-up"
     info_base="[$timestamp INFO]: $basefile::$scope"
 
     echo "$info_base started" >> $logfile
+
+    decompress "maria" "data_dump.tar.gz" "data_dump"
+
+    decompress "mono" "bin.tar.gz" "bin"
+
+    echo "$info_base building services" >> $logfile
 
     sudo docker-compose up -d --build
 
@@ -110,6 +202,10 @@ function tear-down(){
 
     echo "$info_base started" >> $logfile
 
+    compress "maria" "data_dump.tar.gz" "data_dump"
+
+    compress "mono" "bin.tar.gz" "bin"
+
     echo "$info_base services removed" >> $logfile
 
     sudo docker-compose down
@@ -117,19 +213,6 @@ function tear-down(){
     echo "$info_base ended" >> $logfile
 
     echo "================" >> $logfile
-}
-
-function clean-db(){
-  user=`whoami`
-  sudo chown -R root:root maria/src
-  sudo chmod -R 777 maria/src/*
-  sudo find maria/src -empty -type f -print0 -exec rm -v "{}" \;
-  sudo rm -f maria/src/mysql/help*
-  sudo rm -f maria/src/mysql/time*
-  sudo rm -f maria/src/mysql/slow*
-  sudo rm -f maria/src/wordpress/comment*
-  sudo rm -f maria/src/wordpress/post*
-  sudo chown -R systemd-coredump:systemd-coredump maria/src
 }
 
 root-check
